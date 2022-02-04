@@ -1,0 +1,99 @@
+---
+title: "HW3"
+author: "Linda"
+date: "11/15/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Consider the Default dataset from ISLR2 library. Use logistic regression to predict the probability of default using income, balance, and student variables. Using
+
+  (a)  the validation set approach,
+  (b)  leave-one-out cross-validation, and
+  (c)  10-fold cross-validation
+ 
+to estimate the test error of this logistic regression model and decide whether it will be improved when the dummy variable student is excluded from this prediction.
+
+```{r}
+library(ISLR2)
+attach(Default)
+Default01 <- glm(default~income+balance+student, data=Default, family= "binomial")
+```
+(a)  the validation set approach
+```{r}
+set.seed(1)
+dim(Default)
+n=dim(Default)[1]
+k=9000
+
+index.train01=sample(c(1:n), 9000)
+index.test01= -index.train01
+testing_y=Default[index.test01]
+
+glm.train01 <- glm(default~income+balance+student, data= Default[index.train01,], family="binomial")
+
+pre01 <- predict(glm.train01, Default[index.test01,], type="response")
+
+predicted.values01=rep("No", n-k)
+predicted.values01[pre01>0.5]<-'Yes'
+
+table(predicted.values01)
+
+mean(predicted.values01!=testing_y)*100
+```
+```{r}
+set.seed(1)
+dim(Default)
+n=dim(Default)[1]
+k=9000
+
+index.train02=sample(c(1:n), 9000)
+index.test02= -index.train02
+testing_y=Default[index.test02]
+
+glm.train02 <- glm(default~income+balance, data= Default[index.train02,], family="binomial")
+pre02 <- predict(glm.train02, Default[index.test02,], type="response")
+
+predicted.values02=rep("No", n-k)
+predicted.values02[pre02>0.5]<-'Yes'
+
+table(predicted.values02)
+mean(predicted.values02!=testing_y)*100
+```
+In the validation set approach, the MSE with dummy variable "student"(=3.1) is slightly higher than without the dummy variable (2.9).
+
+(b)  leave-one-out cross-validation
+```{r}
+glm.fit <- glm(default~income+balance+student, data= Default, family="binomial")
+library(boot)
+
+error1 <- cv.glm(Default, glm.fit)$delta[2] #cv error
+#leave 2 out at a time
+error1
+
+glm.fit <- glm(default~income+balance, data= Default, family="binomial")
+error2 <- cv.glm(Default, glm.fit)$delta[2]
+error2
+```
+In leave-one-out cross-validation approach, the MSE without dummy variable "student"(error2= 0.02146706) is slightly higher than with the dummy variable (error1 = 0.02139653).
+
+ (c)  10-fold cross-validation
+```{r}
+k=10 
+
+glm.fit <- glm(default~income+balance+student, data=Default, family="binomial")
+cv.error.01 <- cv.glm(Default, glm.fit, K=10)$delta[1]
+cv.error.01
+
+glm.fit <- glm(default~income+balance, data=Default, family="binomial")
+
+cv.error.02 <- cv.glm(Default, glm.fit, K=10)$delta[1]
+cv.error.02
+```
+
+In 10-fold cross-validation approach, the MSE without the dummy variable "student"(error02= 0.02146293) is slightly higher than with the dummy variable (error01 = 0.02138522).
+
+We thus conclude that the logistic regression model will not be improved when the dummy variable student is excluded from this prediction.
